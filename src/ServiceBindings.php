@@ -29,6 +29,7 @@ trait ServiceBindings
         Contracts\WorkloadRepository::class => Repositories\RedisWorkloadRepository::class,
 
         // Notifications...
+        Contracts\HighFailureRateDetectedNotification::class => Notifications\HighFailureRateDetected::class,
         Contracts\LongWaitDetectedNotification::class => Notifications\LongWaitDetected::class,
     ];
 }

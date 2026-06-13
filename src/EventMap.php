@@ -56,6 +56,7 @@ trait EventMap
             Listeners\TrimMonitoredJobs::class,
             Listeners\ExpireSupervisors::class,
             Listeners\MonitorMasterSupervisorMemory::class,
+            Listeners\MonitorFailureRate::class,
         ],
 
         Events\SupervisorLooped::class => [
@@ -73,6 +74,10 @@ trait EventMap
         ],
 
         Events\LongWaitDetected::class => [
+            Listeners\SendNotification::class,
+        ],
+
+        Events\HighFailureRateDetected::class => [
             Listeners\SendNotification::class,
         ],
     ];

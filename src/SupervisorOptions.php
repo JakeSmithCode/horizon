@@ -103,6 +103,17 @@ class SupervisorOptions
     public $balanceMaxShift = 1;
 
     /**
+     * The maximum number of processes to decrease per one scaling when scaling down.
+     *
+     * When null, the value of "balanceMaxShift" is used, preserving the default
+     * behavior. Setting this lower than "balanceMaxShift" lets a supervisor
+     * scale up quickly while scaling down gradually to avoid flapping.
+     *
+     * @var int|null
+     */
+    public $balanceMaxScaleDown = null;
+
+    /**
      * The number of seconds to wait before retrying a job that encountered an uncaught exception.
      *
      * @var int
@@ -196,6 +207,7 @@ class SupervisorOptions
      * @param  int  $parentId
      * @param  int  $rest
      * @param  string|null  $autoScalingStrategy
+     * @param  int|null  $balanceMaxScaleDown
      */
     public function __construct(
         $name,
@@ -219,6 +231,7 @@ class SupervisorOptions
         $parentId = 0,
         $rest = 0,
         $autoScalingStrategy = 'time',
+        $balanceMaxScaleDown = null,
     ) {
         $this->name = $name;
         $this->connection = $connection;
@@ -241,6 +254,17 @@ class SupervisorOptions
         $this->parentId = $parentId;
         $this->rest = $rest;
         $this->autoScalingStrategy = $autoScalingStrategy;
+        $this->balanceMaxScaleDown = $balanceMaxScaleDown;
+    }
+
+    /**
+     * Get the maximum number of processes to remove during a single scale-down.
+     *
+     * @return int
+     */
+    public function balanceMaxScaleDown()
+    {
+        return $this->balanceMaxScaleDown ?? $this->balanceMaxShift;
     }
 
     /**
@@ -342,6 +366,7 @@ class SupervisorOptions
             'timeout' => $this->timeout,
             'balanceCooldown' => $this->balanceCooldown,
             'balanceMaxShift' => $this->balanceMaxShift,
+            'balanceMaxScaleDown' => $this->balanceMaxScaleDown,
             'parentId' => $this->parentId,
             'rest' => $this->rest,
             'autoScalingStrategy' => $this->autoScalingStrategy,

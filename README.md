@@ -37,6 +37,46 @@ without modification. It adds three read-only observability commands:
 All three only read from Horizon's existing repositories, so they are safe to
 run against a live production installation.
 
+### Health dashboard panel
+
+A new **Health** screen is available in the Horizon dashboard (and via the
+`GET /horizon/api/health` endpoint). It surfaces the same checks as
+`horizon:diagnose` — Redis reachability, required PHP extensions, master and
+worker status, queue wait times, and recent failure rate — so you can see at a
+glance whether the installation needs attention. The endpoint reuses Horizon's
+existing authorization gate and is purely additive.
+
+### Job failure-rate alerting
+
+Horizon already notifies on long queue waits. This fork adds an opt-in
+notification when the number of recently failed jobs exceeds a threshold,
+reusing the existing Slack / SMS / mail notification routing. It is **disabled
+by default**; enable it by setting a threshold:
+
+```php
+// config/horizon.php
+'failure_threshold' => env('HORIZON_FAILURE_THRESHOLD'), // e.g. 25
+```
+
+When unset (the default, and for any existing published config), no behavior
+changes.
+
+### Asymmetric auto-scaling (`balanceMaxScaleDown`)
+
+Supervisors gain an optional `balanceMaxScaleDown` setting that caps how many
+processes may be removed during a single scaling pass, independently of
+`balanceMaxShift` (which still governs scale-up). This lets a supervisor scale
+up quickly under load while scaling down gradually to avoid flapping:
+
+```php
+// config/horizon.php — under a supervisor's options
+'balanceMaxShift' => 5,        // add up to 5 workers per scale
+'balanceMaxScaleDown' => 1,    // remove at most 1 worker per scale
+```
+
+When omitted, it defaults to the value of `balanceMaxShift`, exactly preserving
+today's behavior.
+
 ## Contributing
 
 Thank you for considering contributing to Horizon! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).

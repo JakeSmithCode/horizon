@@ -167,7 +167,7 @@ class AutoScaler
         } elseif ($desiredProcessCount < $totalProcessCount) {
             $maxDownShift = min(
                 $supervisor->totalProcessCount() - $supervisor->options->minProcesses,
-                $supervisor->options->balanceMaxShift
+                $supervisor->options->balanceMaxScaleDown()
             );
 
             $pool->scale(

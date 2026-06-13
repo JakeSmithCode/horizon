@@ -6,6 +6,9 @@ Route::prefix('api')->group(function () {
     // Dashboard Routes...
     Route::get('/stats', 'DashboardStatsController@index')->name('horizon.stats.index');
 
+    // Health Routes...
+    Route::get('/health', 'HealthController@index')->name('horizon.health.index');
+
     // Workload Routes...
     Route::get('/workload', 'WorkloadController@index')->name('horizon.workload.index');
 

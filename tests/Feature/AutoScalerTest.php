@@ -70,6 +70,35 @@ class AutoScalerTest extends IntegrationTest
         $this->assertSame(1, $supervisor->processPools['second']->totalProcessCount());
     }
 
+    public function test_balance_max_scale_down_allows_faster_scale_down()
+    {
+        [$scaler, $supervisor] = $this->with_scaling_scenario(10, [
+            'first' => ['current' => 5, 'size' => 0, 'runtime' => 0],
+            'second' => ['current' => 5, 'size' => 0, 'runtime' => 0],
+        ], ['balanceMaxScaleDown' => 3]);
+
+        $scaler->scale($supervisor);
+
+        // With balanceMaxScaleDown of 3, each pool drops by up to 3 in a single
+        // iteration instead of the default single-process shift.
+        $this->assertSame(2, $supervisor->processPools['first']->totalProcessCount());
+        $this->assertSame(2, $supervisor->processPools['second']->totalProcessCount());
+    }
+
+    public function test_balance_max_scale_down_defaults_to_balance_max_shift()
+    {
+        [$scaler, $supervisor] = $this->with_scaling_scenario(10, [
+            'first' => ['current' => 5, 'size' => 0, 'runtime' => 0],
+            'second' => ['current' => 5, 'size' => 0, 'runtime' => 0],
+        ]);
+
+        $scaler->scale($supervisor);
+
+        // Without the option set, scale-down behaves exactly as before (shift of 1).
+        $this->assertSame(4, $supervisor->processPools['first']->totalProcessCount());
+        $this->assertSame(4, $supervisor->processPools['second']->totalProcessCount());
+    }
+
     public function test_balancer_assigns_more_processes_on_busy_queue()
     {
         [$scaler, $supervisor] = $this->with_scaling_scenario(10, [

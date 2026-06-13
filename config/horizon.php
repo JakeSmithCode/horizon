@@ -102,6 +102,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Job Failure Rate Threshold
+    |--------------------------------------------------------------------------
+    |
+    | This option configures when the HighFailureRateDetected event is fired.
+    | When the number of recently failed jobs exceeds this threshold, Horizon
+    | will dispatch a notification. Leave this null to disable the feature.
+    |
+    */
+
+    'failure_threshold' => env('HORIZON_FAILURE_THRESHOLD'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Job Trimming Times
     |--------------------------------------------------------------------------
     |
