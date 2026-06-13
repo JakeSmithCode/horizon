@@ -58,6 +58,33 @@ export default {
         },
 
         /**
+         * Copy the given text to the clipboard.
+         */
+        copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(String(text));
+            }
+
+            // Fallback for browsers / insecure contexts without the Clipboard API.
+            const textarea = document.createElement('textarea');
+            textarea.value = String(text);
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                document.execCommand('copy');
+            } catch (e) {
+                // Ignore copy failures; nothing more we can do here.
+            }
+
+            document.body.removeChild(textarea);
+
+            return Promise.resolve();
+        },
+
+        /**
          * Group array entries by a given key.
          */
         groupBy(array, key) {

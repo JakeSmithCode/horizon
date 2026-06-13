@@ -13,6 +13,7 @@
                 stats: {},
                 workers: [],
                 workload: [],
+                health: {healthy: true, checks: []},
                 ready: false,
             };
         },
@@ -44,6 +45,18 @@
                 return !this.ready
                     ? 'Failed Jobs Past 7 Days'
                     : `Failed Jobs Past ${this.determinePeriod(this.stats.periods.failedJobs)}`;
+            },
+
+
+            /**
+             * Build a tooltip listing any checks that are not healthy.
+             */
+            healthTitle() {
+                let problems = (this.health.checks || []).filter(check => check.status !== 'ok');
+
+                return problems.length
+                    ? problems.map(check => `${check.name}: ${check.message}`).join('\n')
+                    : 'All health checks are passing';
             },
         },
 
@@ -88,6 +101,20 @@
 
 
             /**
+             * Load the health check results.
+             */
+            loadHealth() {
+                return this.$http.get(Horizon.basePath + '/api/health')
+                    .then(response => {
+                        this.health = response.data;
+                    })
+                    .catch(() => {
+                        // Never let a health check failure block the dashboard from rendering.
+                    });
+            },
+
+
+            /**
              * Poll handler to refresh the stats at regular intervals.
              */
             refreshStatsPeriodically() {
@@ -95,6 +122,7 @@
                     this.loadStats(),
                     this.loadWorkers(),
                     this.loadWorkload(),
+                    this.loadHealth(),
                 ]).then(() => {
                     this.ready = true;
                 });
@@ -147,6 +175,12 @@
         <div class="card overflow-hidden">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <h2 class="h6 m-0">Overview</h2>
+
+                <router-link v-if="ready" :to="{ name: 'health' }" class="text-decoration-none" :title="healthTitle">
+                    <span class="badge" :class="health.healthy ? 'badge-success' : 'badge-warning'">
+                        {{ health.healthy ? 'Healthy' : 'Needs Attention' }}
+                    </span>
+                </router-link>
             </div>
 
             <div class="card-bg-secondary">

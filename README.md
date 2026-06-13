@@ -46,7 +46,15 @@ A new **Health** screen is available in the Horizon dashboard (and via the
 `horizon:diagnose` — Redis reachability, required PHP extensions, master and
 worker status, queue wait times, and recent failure rate — so you can see at a
 glance whether the installation needs attention. The endpoint reuses Horizon's
-existing authorization gate and is purely additive.
+existing authorization gate and is purely additive. The main dashboard's
+Overview header also shows a live **Healthy / Needs Attention** badge (hover for
+the failing checks) that links straight to the Health screen.
+
+### Dashboard polish
+
+Small, additive UI conveniences: a copy-to-clipboard button next to the job ID on
+the recent- and failed-job detail screens, and the dashboard health badge
+described above.
 
 ### Job failure-rate alerting
 
