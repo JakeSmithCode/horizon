@@ -9,4 +9,5 @@
 /vendor
 composer.phar
 composer.lock
+dump.rdb
 Thumbs.db
