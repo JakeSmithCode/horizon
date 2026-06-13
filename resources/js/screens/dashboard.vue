@@ -14,6 +14,7 @@
                 workers: [],
                 workload: [],
                 health: {healthy: true, checks: []},
+                slowestJobs: [],
                 ready: false,
             };
         },
@@ -115,6 +116,20 @@
 
 
             /**
+             * Load the slowest jobs leaderboard.
+             */
+            loadSlowestJobs() {
+                return this.$http.get(Horizon.basePath + '/api/leaderboard/slowest-jobs')
+                    .then(response => {
+                        this.slowestJobs = response.data;
+                    })
+                    .catch(() => {
+                        // Leaderboard is supplementary; ignore failures.
+                    });
+            },
+
+
+            /**
              * Poll handler to refresh the stats at regular intervals.
              */
             refreshStatsPeriodically() {
@@ -123,6 +138,7 @@
                     this.loadWorkers(),
                     this.loadWorkload(),
                     this.loadHealth(),
+                    this.loadSlowestJobs(),
                 ]).then(() => {
                     this.ready = true;
                 });
@@ -324,6 +340,37 @@
                             <td class="text-end text-muted">{{ humanTime(split_queue.wait) }}</td>
                         </tr>
                     </template>
+                </tbody>
+            </table>
+        </div>
+
+
+        <div class="card overflow-hidden mt-4" v-if="ready && slowestJobs.length">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h2 class="h6 m-0">Slowest Jobs</h2>
+            </div>
+
+            <table class="table table-hover mb-0">
+                <thead>
+                <tr>
+                    <th>Job</th>
+                    <th class="text-end" style="width: 120px;">p95</th>
+                    <th class="text-end" style="width: 120px;">Avg Runtime</th>
+                    <th class="text-end" style="width: 140px;">Throughput</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr v-for="entry in slowestJobs" :key="entry.job">
+                    <td>
+                        <router-link class="text-decoration-none" :title="entry.job" :to="{ name: 'metrics-preview', params: { type: 'jobs', slug: entry.job }}">
+                            {{ jobBaseName(entry.job) }}
+                        </router-link>
+                    </td>
+                    <td class="text-end text-muted">{{ entry.p95 !== null ? entry.p95.toLocaleString() + 'ms' : '-' }}</td>
+                    <td class="text-end text-muted">{{ entry.runtime ? entry.runtime.toLocaleString() + 'ms' : '-' }}</td>
+                    <td class="text-end text-muted">{{ entry.throughput ? entry.throughput.toLocaleString() : 0 }}</td>
+                </tr>
                 </tbody>
             </table>
         </div>

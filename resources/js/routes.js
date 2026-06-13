@@ -11,6 +11,7 @@ import recentJobs from './screens/recentJobs/index.vue';
 import recentJobsJob from './screens/recentJobs/job.vue';
 import failedJobs from './screens/failedJobs/index.vue';
 import failedJobsJob from './screens/failedJobs/job.vue';
+import failures from './screens/failures/index.vue';
 import batches from './screens/batches/index.vue';
 import batchesPreview from './screens/batches/preview.vue';
 
@@ -110,6 +111,12 @@ export default [
                 component: failedJobsJob,
             },
         ],
+    },
+
+    {
+        path: '/failures',
+        name: 'failures',
+        component: failures,
     },
 
     {

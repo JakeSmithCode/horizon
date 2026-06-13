@@ -50,6 +50,24 @@ existing authorization gate and is purely additive. The main dashboard's
 Overview header also shows a live **Healthy / Needs Attention** badge (hover for
 the failing checks) that links straight to the Health screen.
 
+### Failures — exception aggregation
+
+A new **Failures** screen (and `GET /horizon/api/failures/groups` endpoint) groups
+recently failed jobs by a normalized exception signature — exception class plus a
+message with IDs/UUIDs masked so near-identical errors cluster together. Each
+group shows its count, the affected job classes and queues, when it last failed,
+a link to a sample job, and a one-click **Retry All** that re-dispatches every job
+in the group (reusing the existing retry endpoint). It turns a flat, chronological
+failed-job list into a triage view. The scan is bounded (most recent 1,000 failed
+jobs by default, `?limit=` up to 2,500) so it stays cheap on large installs.
+
+### Slowest jobs leaderboard
+
+The dashboard gains a **Slowest Jobs** card (and
+`GET /horizon/api/leaderboard/slowest-jobs`) ranking job classes by p95 runtime
+when percentiles are enabled, falling back to average runtime otherwise. The card
+only appears when runtime data exists.
+
 ### Dashboard polish
 
 Small, additive UI conveniences: a copy-to-clipboard button next to the job ID on
