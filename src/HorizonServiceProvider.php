@@ -153,6 +153,7 @@ class HorizonServiceProvider extends ServiceProvider
             Console\StatsCommand::class,
             Console\StatusCommand::class,
             Console\SupervisorsCommand::class,
+            Console\UsageCommand::class,
             Console\WaitCommand::class,
         ]);
     }

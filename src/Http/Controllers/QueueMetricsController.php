@@ -37,6 +37,24 @@ class QueueMetricsController extends Controller
     }
 
     /**
+     * Get the recent throughput series for each measured queue.
+     *
+     * @return array
+     */
+    public function trends()
+    {
+        return collect($this->metrics->measuredQueues())
+            ->mapWithKeys(fn ($queue) => [
+                $queue => collect($this->metrics->snapshotsForQueue($queue))
+                    ->map(fn ($snapshot) => (int) $snapshot->throughput)
+                    ->slice(-20)
+                    ->values()
+                    ->all(),
+            ])
+            ->all();
+    }
+
+    /**
      * Get metrics for a given queue.
      *
      * @param  string  $id

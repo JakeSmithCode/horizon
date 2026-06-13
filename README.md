@@ -35,6 +35,7 @@ without modification. It adds the following commands:
 | `php artisan horizon:prometheus` | Export Horizon metrics in Prometheus / OpenMetrics text format for scraping. Use `--file=` to write to a node_exporter textfile collector, or `--namespace=` to change the metric prefix. |
 | `php artisan horizon:check` | Verify Horizon is running. Exits non-zero when down and, if Horizon was previously seen running, dispatches a "Horizon stopped" alert (once per outage). Schedule it (e.g. every minute) as a deadman switch. |
 | `php artisan horizon:wait` | Block until the given queues are empty, with `--connection=`, `--queue=` (repeatable), `--timeout=`, and `--sleep=`. Useful as a deploy/CI gate before cutting over. |
+| `php artisan horizon:usage` | Report how many records Horizon is retaining in Redis (recent / pending / completed / failed / monitored jobs and measured job/queue counts) alongside the configured retention, to help tune `trim` settings. Add `--json`. |
 
 The reporting commands only read from Horizon's existing repositories, so they
 are safe to run against a live production installation.
@@ -80,6 +81,12 @@ It's purely visual (no notifications) and shows nothing when the system is stabl
 The dashboard's Current Workload card now shows a one-line summary — total pending
 jobs across all queues and an estimated **"clears in ~N"** based on the longest
 queue wait — computed from data already on the page.
+
+### Per-queue throughput sparklines
+
+Each row of the Current Workload table shows a small inline **throughput sparkline**
+built from the queue's recent metric snapshots (`GET /api/metrics/queue-trends`), so
+you can spot a queue trending up or down without opening the metrics screen.
 
 ### Slowest jobs leaderboard
 

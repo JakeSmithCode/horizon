@@ -1,8 +1,11 @@
 <script type="text/ecmascript-6">
     import moment from 'moment';
+    import Sparkline from '../components/Sparkline.vue';
 
     export default {
-        components: {},
+        components: {
+            Sparkline,
+        },
 
 
         /**
@@ -15,6 +18,7 @@
                 workload: [],
                 health: {healthy: true, checks: []},
                 slowestJobs: [],
+                queueTrends: {},
                 ready: false,
             };
         },
@@ -146,6 +150,28 @@
 
 
             /**
+             * Load the per-queue throughput trends.
+             */
+            loadQueueTrends() {
+                return this.$http.get(Horizon.basePath + '/api/metrics/queue-trends')
+                    .then(response => {
+                        this.queueTrends = response.data;
+                    })
+                    .catch(() => {
+                        // Trends are supplementary; ignore failures.
+                    });
+            },
+
+
+            /**
+             * Get the throughput trend series for the given queue.
+             */
+            trendFor(name) {
+                return this.queueTrends[name] || [];
+            },
+
+
+            /**
              * Poll handler to refresh the stats at regular intervals.
              */
             refreshStatsPeriodically() {
@@ -155,6 +181,7 @@
                     this.loadWorkload(),
                     this.loadHealth(),
                     this.loadSlowestJobs(),
+                    this.loadQueueTrends(),
                 ]).then(() => {
                     this.ready = true;
                 });
@@ -330,6 +357,7 @@
                 <thead>
                 <tr>
                     <th>Queue</th>
+                    <th class="text-end" style="width: 110px;">Trend</th>
                     <th class="text-end" style="width: 120px;">Jobs</th>
                     <th class="text-end" style="width: 120px;">Processes</th>
                     <th class="text-end" style="width: 180px;">Wait</th>
@@ -341,6 +369,9 @@
                         <tr>
                             <td :class="{ 'fw-bold': queue.split_queues }">
                                 <span>{{ queue.name.replace(/,/g, ', ') }}</span>
+                            </td>
+                            <td class="text-end align-middle">
+                                <sparkline :data="trendFor(queue.name)" />
                             </td>
                             <td class="text-end text-muted" :class="{ 'fw-bold': queue.split_queues }">{{ queue.length ? queue.length.toLocaleString() : 0 }}</td>
                             <td class="text-end text-muted" :class="{ 'fw-bold': queue.split_queues }">{{ queue.processes ? queue.processes.toLocaleString() : 0 }}</td>
@@ -354,6 +385,9 @@
                                 </svg>
 
                                 <span>{{ split_queue.name.replace(/,/g, ', ') }}</span>
+                            </td>
+                            <td class="text-end align-middle">
+                                <sparkline :data="trendFor(split_queue.name)" />
                             </td>
                             <td class="text-end text-muted">{{ split_queue.length ? split_queue.length.toLocaleString() : 0 }}</td>
                             <td class="text-end text-muted">-</td>
