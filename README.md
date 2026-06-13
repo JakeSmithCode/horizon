@@ -61,6 +61,26 @@ in the group (reusing the existing retry endpoint). It turns a flat, chronologic
 failed-job list into a triage view. The scan is bounded (most recent 1,000 failed
 jobs by default, `?limit=` up to 2,500) so it stays cheap on large installs.
 
+### Anomaly detection
+
+The Health screen gains an **Anomalies** panel (backed by `GET /horizon/api/anomalies`)
+that flags problems a static threshold would miss — derived entirely from the
+metrics Horizon already snapshots:
+
+- **Throughput collapse** — a queue's throughput falls far below its own trailing
+  baseline (a stuck consumer that a fixed threshold wouldn't catch).
+- **Runtime regression** — a queue's average runtime jumps well above its baseline.
+- **Stalled queue** — pending jobs exist on a queue with no workers assigned.
+- **Elevated failure rate** — a high share of recent jobs are failing.
+
+It's purely visual (no notifications) and shows nothing when the system is stable.
+
+### Capacity / ETA
+
+The dashboard's Current Workload card now shows a one-line summary — total pending
+jobs across all queues and an estimated **"clears in ~N"** based on the longest
+queue wait — computed from data already on the page.
+
 ### Slowest jobs leaderboard
 
 The dashboard gains a **Slowest Jobs** card (and

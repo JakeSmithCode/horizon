@@ -59,6 +59,22 @@
                     ? problems.map(check => `${check.name}: ${check.message}`).join('\n')
                     : 'All health checks are passing';
             },
+
+
+            /**
+             * The total number of pending jobs across all queues.
+             */
+            totalPending() {
+                return this.workload.reduce((total, queue) => total + (queue.length || 0), 0);
+            },
+
+
+            /**
+             * The estimated number of seconds to clear all queues (the longest wait).
+             */
+            estimatedClearSeconds() {
+                return this.workload.reduce((max, queue) => Math.max(max, queue.wait || 0), 0);
+            },
         },
 
 
@@ -304,6 +320,10 @@
         <div class="card overflow-hidden mt-4" v-if="workload.length">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <h2 class="h6 m-0">Current Workload</h2>
+
+                <small class="text-muted">
+                    {{ totalPending.toLocaleString() }} pending · clears in ~{{ estimatedClearSeconds ? humanTime(estimatedClearSeconds) : '0 seconds' }}
+                </small>
             </div>
 
             <table class="table table-hover mb-0">

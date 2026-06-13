@@ -8,6 +8,7 @@ Route::prefix('api')->group(function () {
 
     // Health Routes...
     Route::get('/health', 'HealthController@index')->name('horizon.health.index');
+    Route::get('/anomalies', 'HealthController@anomalies')->name('horizon.anomalies.index');
 
     // Failure Grouping Routes...
     Route::get('/failures/groups', 'FailuresController@groups')->name('horizon.failures.groups');

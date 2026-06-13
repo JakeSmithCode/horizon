@@ -3,6 +3,7 @@
 namespace Laravel\Horizon\Http\Controllers;
 
 use Laravel\Horizon\Health\HealthCheck;
+use Laravel\Horizon\Metrics\AnomalyDetector;
 
 class HealthController extends Controller
 {
@@ -19,6 +20,19 @@ class HealthController extends Controller
         return [
             'healthy' => $health->healthy($checks),
             'checks' => $checks,
+        ];
+    }
+
+    /**
+     * Get any detected anomalies in the queue system.
+     *
+     * @param  \Laravel\Horizon\Metrics\AnomalyDetector  $detector
+     * @return array
+     */
+    public function anomalies(AnomalyDetector $detector)
+    {
+        return [
+            'anomalies' => $detector->detect(),
         ];
     }
 }

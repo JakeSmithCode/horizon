@@ -10,7 +10,8 @@
             return {
                 ready: false,
                 healthy: true,
-                checks: []
+                checks: [],
+                anomalies: []
             };
         },
 
@@ -20,6 +21,7 @@
          */
         mounted() {
             this.loadHealth();
+            this.loadAnomalies();
         },
 
 
@@ -38,10 +40,25 @@
 
 
             /**
+             * Load the detected anomalies.
+             */
+            loadAnomalies() {
+                return this.$http.get(Horizon.basePath + '/api/anomalies')
+                    .then(response => {
+                        this.anomalies = response.data.anomalies;
+                    })
+                    .catch(() => {
+                        // Anomaly detection is supplementary; ignore failures.
+                    });
+            },
+
+
+            /**
              * Poll handler to refresh the health checks at regular intervals.
              */
             refreshHealthPeriodically() {
                 this.loadHealth();
+                this.loadAnomalies();
             },
 
 
@@ -108,6 +125,35 @@
                             </span>
                         </td>
                         <td class="text-muted">{{ check.message }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card mb-4" v-if="anomalies.length">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5>Anomalies</h5>
+                    <span class="badge badge-warning">{{ anomalies.length }} detected</span>
+                </div>
+
+                <table class="table table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Anomaly</th>
+                        <th>Details</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    <tr v-for="(anomaly, index) in anomalies" :key="index">
+                        <td class="table-fit">
+                            <span class="badge" :class="badgeClass(anomaly.severity)">
+                                {{ statusLabel(anomaly.severity) }}
+                            </span>
+                        </td>
+                        <td class="fw-bold">{{ anomaly.title }}</td>
+                        <td class="text-muted">{{ anomaly.detail }}</td>
                     </tr>
                     </tbody>
                 </table>
