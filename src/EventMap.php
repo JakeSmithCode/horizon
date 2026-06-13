@@ -80,5 +80,21 @@ trait EventMap
         Events\HighFailureRateDetected::class => [
             Listeners\SendNotification::class,
         ],
+
+        Events\SupervisorOutOfMemory::class => [
+            Listeners\SendNotification::class,
+        ],
+
+        Events\MasterSupervisorOutOfMemory::class => [
+            Listeners\SendNotification::class,
+        ],
+
+        Events\UnableToLaunchProcess::class => [
+            Listeners\SendNotification::class,
+        ],
+
+        Events\HorizonStopped::class => [
+            Listeners\SendNotification::class,
+        ],
     ];
 }

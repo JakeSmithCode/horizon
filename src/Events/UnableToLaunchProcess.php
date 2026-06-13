@@ -23,4 +23,16 @@ class UnableToLaunchProcess
     {
         $this->process = $process;
     }
+
+    /**
+     * Get a notification representation of the event.
+     *
+     * @return \Laravel\Horizon\Notifications\UnableToLaunchProcess
+     */
+    public function toNotification()
+    {
+        return new \Laravel\Horizon\Notifications\UnableToLaunchProcess(
+            $this->process->process->getCommandLine()
+        );
+    }
 }

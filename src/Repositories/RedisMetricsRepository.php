@@ -13,6 +13,17 @@ use Laravel\Horizon\WaitTimeCalculator;
 class RedisMetricsRepository implements MetricsRepository
 {
     /**
+     * The upper bounds (in milliseconds) of the runtime histogram buckets.
+     *
+     * Used to capture an approximate runtime distribution so percentiles can be
+     * derived at snapshot time. Runtimes above the final bound fall into an
+     * overflow bucket whose index equals the number of bounds.
+     *
+     * @var array<int, int>
+     */
+    const RUNTIME_BUCKETS = [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000];
+
+    /**
      * The Redis connection instance.
      *
      * @var \Illuminate\Contracts\Redis\Factory
@@ -193,6 +204,8 @@ class RedisMetricsRepository implements MetricsRepository
         $this->connection()->eval(LuaScripts::updateMetrics(), 2,
             'job:'.$job, 'measured_jobs', str_replace(',', '.', (string) $runtime)
         );
+
+        $this->recordRuntimeBucket('job:'.$job, $runtime);
     }
 
     /**
@@ -207,6 +220,105 @@ class RedisMetricsRepository implements MetricsRepository
         $this->connection()->eval(LuaScripts::updateMetrics(), 2,
             'queue:'.$queue, 'measured_queues', str_replace(',', '.', (string) $runtime)
         );
+
+        $this->recordRuntimeBucket('queue:'.$queue, $runtime);
+    }
+
+    /**
+     * Record a runtime measurement in the percentile histogram for the key.
+     *
+     * This is opt-in via the "horizon.metrics.percentiles" config flag. When
+     * disabled (the default) no extra Redis writes occur, preserving the
+     * original behavior for existing installations.
+     *
+     * @param  string  $key
+     * @param  float|null  $runtime
+     * @return void
+     */
+    protected function recordRuntimeBucket($key, $runtime)
+    {
+        if (! config('horizon.metrics.percentiles') || ! is_numeric($runtime)) {
+            return;
+        }
+
+        $this->connection()->hincrby('percentile:'.$key, $this->bucketFor((float) $runtime), 1);
+    }
+
+    /**
+     * Get the histogram bucket index for the given runtime in milliseconds.
+     *
+     * @param  float  $runtime
+     * @return int
+     */
+    protected function bucketFor($runtime)
+    {
+        foreach (self::RUNTIME_BUCKETS as $index => $upperBound) {
+            if ($runtime <= $upperBound) {
+                return $index;
+            }
+        }
+
+        return count(self::RUNTIME_BUCKETS);
+    }
+
+    /**
+     * Compute the runtime percentiles for a key and reset its histogram.
+     *
+     * @param  string  $key
+     * @return array<string, float>
+     */
+    protected function percentilesFor($key)
+    {
+        $histogram = (array) $this->connection()->hgetall('percentile:'.$key);
+
+        if (empty($histogram)) {
+            return [];
+        }
+
+        $this->connection()->del('percentile:'.$key);
+
+        return [
+            'p95' => $this->percentileFromHistogram($histogram, 0.95),
+            'p99' => $this->percentileFromHistogram($histogram, 0.99),
+        ];
+    }
+
+    /**
+     * Estimate a percentile (in milliseconds) from a bucketed histogram.
+     *
+     * @param  array  $histogram
+     * @param  float  $percentile
+     * @return float
+     */
+    protected function percentileFromHistogram($histogram, $percentile)
+    {
+        $total = array_sum(array_map('intval', $histogram));
+
+        if ($total === 0) {
+            return 0.0;
+        }
+
+        $rank = $percentile * $total;
+        $cumulative = 0;
+        $lowerBound = 0.0;
+
+        foreach (self::RUNTIME_BUCKETS as $index => $upperBound) {
+            $count = (int) ($histogram[$index] ?? 0);
+
+            if ($count > 0 && $cumulative + $count >= $rank) {
+                $fraction = ($rank - $cumulative) / $count;
+
+                return round($lowerBound + $fraction * ($upperBound - $lowerBound), 2);
+            }
+
+            $cumulative += $count;
+            $lowerBound = $upperBound;
+        }
+
+        // The percentile falls in the overflow bucket; we can only report a floor.
+        $buckets = self::RUNTIME_BUCKETS;
+
+        return (float) end($buckets);
     }
 
     /**
@@ -274,11 +386,11 @@ class RedisMetricsRepository implements MetricsRepository
         $data = $this->baseSnapshotData($key = 'job:'.$job);
 
         $this->connection()->zadd(
-            'snapshot:'.$key, $time = CarbonImmutable::now()->getTimestamp(), json_encode([
+            'snapshot:'.$key, $time = CarbonImmutable::now()->getTimestamp(), json_encode(array_merge([
                 'throughput' => $data['throughput'],
                 'runtime' => $data['runtime'],
                 'time' => $time,
-            ])
+            ], $this->percentilesFor($key)))
         );
 
         $this->connection()->zremrangebyrank(
@@ -297,12 +409,12 @@ class RedisMetricsRepository implements MetricsRepository
         $data = $this->baseSnapshotData($key = 'queue:'.$queue);
 
         $this->connection()->zadd(
-            'snapshot:'.$key, $time = CarbonImmutable::now()->getTimestamp(), json_encode([
+            'snapshot:'.$key, $time = CarbonImmutable::now()->getTimestamp(), json_encode(array_merge([
                 'throughput' => $data['throughput'],
                 'runtime' => $data['runtime'],
                 'wait' => app(WaitTimeCalculator::class)->calculateFor($queue),
                 'time' => $time,
-            ])
+            ], $this->percentilesFor($key)))
         );
 
         $this->connection()->zremrangebyrank(
@@ -392,7 +504,7 @@ class RedisMetricsRepository implements MetricsRepository
         $this->forget('measured_queues');
         $this->forget('metrics:snapshot');
 
-        foreach (['queue:*', 'job:*', 'snapshot:*'] as $pattern) {
+        foreach (['queue:*', 'job:*', 'snapshot:*', 'percentile:*'] as $pattern) {
             $cursor = null;
 
             do {

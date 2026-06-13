@@ -26,16 +26,18 @@ Documentation for Horizon can be found on the [Laravel website](https://laravel.
 This fork is a **drop-in superset** of `laravel/horizon`. It changes no
 configuration defaults, routes, Redis data structures, or public API
 signatures, so it can be installed in any repository already running Horizon
-without modification. It adds three read-only observability commands:
+without modification. It adds the following commands:
 
 | Command | Description |
 | --- | --- |
 | `php artisan horizon:stats` | Print the current dashboard statistics (status, processes, throughput, recent/failed jobs, wait times) to the terminal. Add `--json` for machine-readable output. |
 | `php artisan horizon:diagnose` | Run health checks (Redis reachability, required extensions, master/worker status, long waits, recent failures) and exit `0` healthy, `1` warnings, `2` critical — ideal for container probes and CI smoke checks. Add `--json` for structured output. |
 | `php artisan horizon:prometheus` | Export Horizon metrics in Prometheus / OpenMetrics text format for scraping. Use `--file=` to write to a node_exporter textfile collector, or `--namespace=` to change the metric prefix. |
+| `php artisan horizon:check` | Verify Horizon is running. Exits non-zero when down and, if Horizon was previously seen running, dispatches a "Horizon stopped" alert (once per outage). Schedule it (e.g. every minute) as a deadman switch. |
+| `php artisan horizon:wait` | Block until the given queues are empty, with `--connection=`, `--queue=` (repeatable), `--timeout=`, and `--sleep=`. Useful as a deploy/CI gate before cutting over. |
 
-All three only read from Horizon's existing repositories, so they are safe to
-run against a live production installation.
+The reporting commands only read from Horizon's existing repositories, so they
+are safe to run against a live production installation.
 
 ### Health dashboard panel
 
@@ -60,6 +62,39 @@ by default**; enable it by setting a threshold:
 
 When unset (the default, and for any existing published config), no behavior
 changes.
+
+### Out-of-memory & process-failure alerting
+
+Horizon fires `SupervisorOutOfMemory`, `MasterSupervisorOutOfMemory`, and
+`UnableToLaunchProcess` events, but stock Horizon has no listeners for them. This
+fork wires them to the existing notification system, so the same Slack / SMS /
+mail routing you use for long waits now also alerts you when a worker dies from
+memory pressure or fails to launch. Like all Horizon notifications, nothing is
+sent unless you've configured a notification route, so there is no change for
+installs that haven't opted in.
+
+### "Horizon stopped" deadman alert
+
+Schedule `horizon:check` (e.g. every minute). While Horizon is healthy it records
+a heartbeat marker; if a later run finds no active master supervisor *after*
+Horizon had been running, it dispatches a `HorizonStopped` notification — once
+per outage, so an intentionally stopped or never-started Horizon never pages
+anyone.
+
+### Runtime percentiles (p95 / p99)
+
+Stock Horizon stores only *average* runtime, which hides tail latency. With this
+opt-in flag, Horizon captures an approximate runtime distribution and stores
+p95 / p99 alongside each metrics snapshot — visible as an extra chart on the
+metrics screen and exported by `horizon:prometheus`:
+
+```php
+// config/horizon.php — under 'metrics'
+'percentiles' => env('HORIZON_METRICS_PERCENTILES', false),
+```
+
+When disabled (the default), no extra Redis writes occur and snapshots keep their
+original shape.
 
 ### Asymmetric auto-scaling (`balanceMaxScaleDown`)
 

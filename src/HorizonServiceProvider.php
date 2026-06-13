@@ -146,12 +146,14 @@ class HorizonServiceProvider extends ServiceProvider
         }
 
         $this->commands([
+            Console\CheckCommand::class,
             Console\DiagnoseCommand::class,
             Console\PrometheusCommand::class,
             Console\SnapshotCommand::class,
             Console\StatsCommand::class,
             Console\StatusCommand::class,
             Console\SupervisorsCommand::class,
+            Console\WaitCommand::class,
         ]);
     }
 

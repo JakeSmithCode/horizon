@@ -23,4 +23,16 @@ class MasterSupervisorOutOfMemory
     {
         $this->master = $master;
     }
+
+    /**
+     * Get a notification representation of the event.
+     *
+     * @return \Laravel\Horizon\Notifications\MasterSupervisorOutOfMemory
+     */
+    public function toNotification()
+    {
+        return new \Laravel\Horizon\Notifications\MasterSupervisorOutOfMemory(
+            $this->master->name
+        );
+    }
 }

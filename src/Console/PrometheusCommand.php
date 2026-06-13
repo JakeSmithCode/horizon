@@ -83,6 +83,7 @@ class PrometheusCommand extends Command
         $this->perQueueWorkload($workload);
         $this->perQueueMetrics($metrics);
         $this->perJobMetrics($metrics);
+        $this->runtimePercentiles($metrics);
 
         $output = implode("\n", $this->lines)."\n";
 
@@ -161,6 +162,43 @@ class PrometheusCommand extends Command
 
             $this->sample('job_throughput', $labels, $metrics->throughputForJob($job));
             $this->sample('job_runtime_milliseconds', $labels, $metrics->runtimeForJob($job));
+        }
+    }
+
+    /**
+     * Emit runtime percentile metrics from the latest snapshot, when available.
+     *
+     * @param  \Laravel\Horizon\Contracts\MetricsRepository  $metrics
+     * @return void
+     */
+    protected function runtimePercentiles($metrics)
+    {
+        $queueSnapshots = collect($metrics->measuredQueues())
+            ->mapWithKeys(fn ($queue) => [$queue => collect($metrics->snapshotsForQueue($queue))->last()])
+            ->filter(fn ($snapshot) => $snapshot && isset($snapshot->p95));
+
+        $jobSnapshots = collect($metrics->measuredJobs())
+            ->mapWithKeys(fn ($job) => [$job => collect($metrics->snapshotsForJob($job))->last()])
+            ->filter(fn ($snapshot) => $snapshot && isset($snapshot->p95));
+
+        if ($queueSnapshots->isEmpty() && $jobSnapshots->isEmpty()) {
+            return;
+        }
+
+        $this->help('queue_runtime_p95_milliseconds', 'p95 job runtime per queue in milliseconds (latest snapshot).', 'gauge');
+        $this->help('queue_runtime_p99_milliseconds', 'p99 job runtime per queue in milliseconds (latest snapshot).', 'gauge');
+
+        foreach ($queueSnapshots as $queue => $snapshot) {
+            $this->sample('queue_runtime_p95_milliseconds', ['queue' => $queue], $snapshot->p95);
+            $this->sample('queue_runtime_p99_milliseconds', ['queue' => $queue], $snapshot->p99);
+        }
+
+        $this->help('job_runtime_p95_milliseconds', 'p95 runtime per job class in milliseconds (latest snapshot).', 'gauge');
+        $this->help('job_runtime_p99_milliseconds', 'p99 runtime per job class in milliseconds (latest snapshot).', 'gauge');
+
+        foreach ($jobSnapshots as $job => $snapshot) {
+            $this->sample('job_runtime_p95_milliseconds', ['job' => $job], $snapshot->p95);
+            $this->sample('job_runtime_p99_milliseconds', ['job' => $job], $snapshot->p99);
         }
     }
 

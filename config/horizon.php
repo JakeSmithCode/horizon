@@ -168,6 +168,10 @@ return [
             'job' => 24,
             'queue' => 24,
         ],
+
+        // When enabled, Horizon captures an approximate runtime distribution so
+        // that p95 / p99 percentiles are stored alongside each metrics snapshot.
+        'percentiles' => env('HORIZON_METRICS_PERCENTILES', false),
     ],
 
     /*

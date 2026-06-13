@@ -53,4 +53,16 @@ class SupervisorOutOfMemory
 
         return $this;
     }
+
+    /**
+     * Get a notification representation of the event.
+     *
+     * @return \Laravel\Horizon\Notifications\SupervisorOutOfMemory
+     */
+    public function toNotification()
+    {
+        return new \Laravel\Horizon\Notifications\SupervisorOutOfMemory(
+            $this->supervisor->name, $this->getMemoryUsage()
+        );
+    }
 }
