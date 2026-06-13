@@ -106,7 +106,7 @@
                     datasets: [
                         {
                             label: 'Milliseconds',
-                            data: data.map(entry => entry.p99),
+                            data: data.map(entry => entry.p99 ?? null),
                             lineTension: 0,
                             backgroundColor: 'transparent',
                             pointBackgroundColor: '#fff',
@@ -116,7 +116,7 @@
                         },
                         {
                             label: 'p95',
-                            data: data.map(entry => entry.p95),
+                            data: data.map(entry => entry.p95 ?? null),
                             lineTension: 0,
                             backgroundColor: 'transparent',
                             pointBackgroundColor: '#fff',

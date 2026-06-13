@@ -115,6 +115,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Operational Alerts
+    |--------------------------------------------------------------------------
+    |
+    | These alerts are dispatched (using your configured Horizon notification
+    | routes) when the corresponding event occurs. They are disabled by
+    | default so that upgrading does not change notification behavior.
+    |
+    */
+
+    'alerts' => [
+        'supervisor_out_of_memory' => env('HORIZON_ALERT_SUPERVISOR_OUT_OF_MEMORY', false),
+        'master_supervisor_out_of_memory' => env('HORIZON_ALERT_MASTER_SUPERVISOR_OUT_OF_MEMORY', false),
+        'failed_to_launch_process' => env('HORIZON_ALERT_FAILED_TO_LAUNCH_PROCESS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Job Trimming Times
     |--------------------------------------------------------------------------
     |

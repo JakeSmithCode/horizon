@@ -19,6 +19,11 @@ class FailuresController extends Controller
     const MAX_IDS_PER_GROUP = 250;
 
     /**
+     * The number of failed jobs read per Redis chunk (matches the repository).
+     */
+    const CHUNK_SIZE = 50;
+
+    /**
      * The job repository implementation.
      *
      * @var \Laravel\Horizon\Contracts\JobRepository
@@ -47,28 +52,29 @@ class FailuresController extends Controller
     public function groups(Request $request)
     {
         $limit = min((int) ($request->query('limit') ?: 1000), self::MAX_SCAN);
+        $total = $this->jobs->countFailed();
 
         $groups = [];
         $scanned = 0;
         $afterIndex = -1;
 
-        while ($scanned < $limit) {
-            $chunk = $this->jobs->getFailed($afterIndex);
-
-            if ($chunk->isEmpty()) {
-                break;
-            }
-
-            foreach ($chunk as $job) {
+        // Advance the cursor by a fixed stride (the repository's chunk size) and
+        // stop at the end of the failed-job set. We cannot key the cursor off the
+        // returned jobs' indices: the repository re-bases indices after dropping
+        // entries whose hashes have expired, which would otherwise overlap
+        // windows (double counting) or break early on an all-expired window.
+        while ($scanned < $limit && ($afterIndex + 1) < $total) {
+            foreach ($this->jobs->getFailed($afterIndex) as $job) {
                 $this->accumulate($groups, $job);
-                $afterIndex = $job->index;
                 $scanned++;
             }
+
+            $afterIndex += self::CHUNK_SIZE;
         }
 
         return [
             'scanned' => $scanned,
-            'total' => $this->jobs->countFailed(),
+            'total' => $total,
             'groups' => collect($groups)
                 ->sortByDesc('count')
                 ->values()
@@ -86,6 +92,9 @@ class FailuresController extends Controller
     protected function accumulate(array &$groups, $job)
     {
         [$exception, $message] = $this->parseException($job->exception);
+
+        $name = $job->name ?: 'Unknown';
+        $queue = $job->queue ?: 'unknown';
 
         $signature = md5($exception.'|'.$this->normalize($message));
 
@@ -108,12 +117,12 @@ class FailuresController extends Controller
 
         $group['count']++;
 
-        if (! in_array($job->queue, $group['queues'])) {
-            $group['queues'][] = $job->queue;
+        if (! in_array($queue, $group['queues'])) {
+            $group['queues'][] = $queue;
         }
 
-        if (! in_array($job->name, $group['jobs'])) {
-            $group['jobs'][] = $job->name;
+        if (! in_array($name, $group['jobs'])) {
+            $group['jobs'][] = $name;
         }
 
         if (count($group['ids']) < self::MAX_IDS_PER_GROUP) {

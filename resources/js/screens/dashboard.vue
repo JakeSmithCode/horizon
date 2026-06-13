@@ -19,6 +19,7 @@
                 health: {healthy: true, checks: []},
                 slowestJobs: [],
                 queueTrends: {},
+                supplementaryLoadedAt: 0,
                 ready: false,
             };
         },
@@ -175,14 +176,24 @@
              * Poll handler to refresh the stats at regular intervals.
              */
             refreshStatsPeriodically() {
-                Promise.all([
+                let requests = [
                     this.loadStats(),
                     this.loadWorkers(),
                     this.loadWorkload(),
                     this.loadHealth(),
-                    this.loadSlowestJobs(),
-                    this.loadQueueTrends(),
-                ]).then(() => {
+                ];
+
+                // The leaderboard and trends are derived from metric snapshots, which
+                // only change when `horizon:snapshot` runs (typically every few
+                // minutes). Refresh them at most every 30s rather than every poll to
+                // avoid an N+1 Redis fan-out on each 5s tick.
+                if (Date.now() - this.supplementaryLoadedAt > 30000) {
+                    this.supplementaryLoadedAt = Date.now();
+
+                    requests.push(this.loadSlowestJobs(), this.loadQueueTrends());
+                }
+
+                Promise.all(requests).then(() => {
                     this.ready = true;
                 });
             },

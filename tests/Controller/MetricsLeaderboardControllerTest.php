@@ -32,4 +32,17 @@ class MetricsLeaderboardControllerTest extends ControllerTest
         $response->assertOk();
         $this->assertSame([], $response->json());
     }
+
+    public function test_leaderboard_handles_measured_jobs_without_a_snapshot()
+    {
+        // A job that has been measured but not yet snapshotted has no snapshot
+        // record; the endpoint must fall back to live metrics without erroring.
+        $metrics = resolve(MetricsRepository::class);
+        $metrics->incrementJob('App\\Jobs\\PendingSnapshotJob', 250);
+
+        $response = $this->actingAs(new Fakes\User)->getJson('/horizon/api/leaderboard/slowest-jobs');
+
+        $response->assertOk();
+        $this->assertSame('App\\Jobs\\PendingSnapshotJob', $response->json('0.job'));
+    }
 }

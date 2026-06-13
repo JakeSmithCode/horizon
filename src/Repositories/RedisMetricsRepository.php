@@ -237,7 +237,13 @@ class RedisMetricsRepository implements MetricsRepository
      */
     protected function recordRuntimeBucket($key, $runtime)
     {
-        if (! config('horizon.metrics.percentiles') || ! is_numeric($runtime)) {
+        if (! config('horizon.metrics.percentiles')) {
+            return;
+        }
+
+        $runtime = str_replace(',', '.', (string) $runtime);
+
+        if (! is_numeric($runtime)) {
             return;
         }
 
@@ -269,6 +275,10 @@ class RedisMetricsRepository implements MetricsRepository
      */
     protected function percentilesFor($key)
     {
+        if (! config('horizon.metrics.percentiles')) {
+            return [];
+        }
+
         $histogram = (array) $this->connection()->hgetall('percentile:'.$key);
 
         if (empty($histogram)) {

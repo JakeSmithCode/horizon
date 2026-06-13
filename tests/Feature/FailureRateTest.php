@@ -33,6 +33,16 @@ class FailureRateTest extends IntegrationTest
         Event::assertNotDispatched(HighFailureRateDetected::class);
     }
 
+    public function test_threshold_of_zero_alerts_on_any_failure()
+    {
+        config(['horizon.failure_threshold' => 0]);
+        Event::fake([HighFailureRateDetected::class]);
+
+        $this->handleWithRecentFailures(1);
+
+        Event::assertDispatched(HighFailureRateDetected::class);
+    }
+
     public function test_monitoring_is_disabled_without_a_threshold()
     {
         config(['horizon.failure_threshold' => null]);

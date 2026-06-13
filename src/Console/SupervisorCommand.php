@@ -120,6 +120,11 @@ class SupervisorCommand extends Command
 
         $autoScalingStrategy = $balance === 'auto' ? $this->option('auto-scaling-strategy') : null;
 
+        $balanceMaxScaleDown = $this->option('balance-max-scale-down');
+        $balanceMaxScaleDown = ($balanceMaxScaleDown === null || $balanceMaxScaleDown === '')
+            ? null
+            : (int) $balanceMaxScaleDown;
+
         return new SupervisorOptions(
             $this->argument('name'),
             $this->argument('connection'),
@@ -142,9 +147,7 @@ class SupervisorCommand extends Command
             $this->option('parent-id'),
             $this->option('rest'),
             $autoScalingStrategy,
-            $this->option('balance-max-scale-down') !== null
-                ? (int) $this->option('balance-max-scale-down')
-                : null
+            $balanceMaxScaleDown
         );
     }
 

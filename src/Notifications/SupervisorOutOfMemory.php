@@ -32,6 +32,16 @@ class SupervisorOutOfMemory extends HorizonAlert
     }
 
     /**
+     * Determine whether this alert is enabled.
+     *
+     * @return bool
+     */
+    public function enabled()
+    {
+        return (bool) config('horizon.alerts.supervisor_out_of_memory', false);
+    }
+
+    /**
      * Get the subject line for the alert.
      *
      * @return string

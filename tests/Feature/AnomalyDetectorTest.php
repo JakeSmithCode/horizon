@@ -2,7 +2,6 @@
 
 namespace Laravel\Horizon\Tests\Feature;
 
-use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\MetricsRepository;
 use Laravel\Horizon\Contracts\WorkloadRepository;
 use Laravel\Horizon\Metrics\AnomalyDetector;
@@ -53,22 +52,11 @@ class AnomalyDetectorTest extends IntegrationTest
         $this->assertSame('emails', $stalled['queue']);
     }
 
-    public function test_elevated_failure_rate_is_detected()
-    {
-        $detector = $this->detector(recent: 70, failed: 30);
-
-        $failure = collect($detector->detect())->firstWhere('type', 'elevated_failure_rate');
-
-        $this->assertNotNull($failure);
-    }
-
     public function test_no_anomalies_for_stable_system()
     {
         $detector = $this->detector(
             queues: ['default'],
             snapshots: ['default' => $this->series([100, 105, 98, 102, 101])],
-            recent: 100,
-            failed: 1,
         );
 
         $this->assertSame([], $detector->detect());
@@ -77,20 +65,16 @@ class AnomalyDetectorTest extends IntegrationTest
     /**
      * Build an anomaly detector backed by mocked repositories.
      */
-    protected function detector(array $queues = [], array $snapshots = [], array $workload = [], int $recent = 0, int $failed = 0)
+    protected function detector(array $queues = [], array $snapshots = [], array $workload = [])
     {
         $metrics = Mockery::mock(MetricsRepository::class);
         $metrics->shouldReceive('measuredQueues')->andReturn($queues);
         $metrics->shouldReceive('snapshotsForQueue')->andReturnUsing(fn ($queue) => $snapshots[$queue] ?? []);
 
-        $jobs = Mockery::mock(JobRepository::class);
-        $jobs->shouldReceive('countRecent')->andReturn($recent);
-        $jobs->shouldReceive('countRecentlyFailed')->andReturn($failed);
-
         $workloadRepo = Mockery::mock(WorkloadRepository::class);
         $workloadRepo->shouldReceive('get')->andReturn($workload);
 
-        return new AnomalyDetector($metrics, $jobs, $workloadRepo);
+        return new AnomalyDetector($metrics, $workloadRepo);
     }
 
     /**

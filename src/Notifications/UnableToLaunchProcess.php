@@ -23,6 +23,16 @@ class UnableToLaunchProcess extends HorizonAlert
     }
 
     /**
+     * Determine whether this alert is enabled.
+     *
+     * @return bool
+     */
+    public function enabled()
+    {
+        return (bool) config('horizon.alerts.failed_to_launch_process', false);
+    }
+
+    /**
      * Get the subject line for the alert.
      *
      * @return string

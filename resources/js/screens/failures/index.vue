@@ -87,7 +87,7 @@
 
 <template>
     <div>
-        <poll @poll="refreshGroupsPeriodically" :interval="15" />
+        <poll @poll="refreshGroupsPeriodically" :interval="30" />
 
         <div class="card overflow-hidden">
             <div class="card-header d-flex align-items-center justify-content-between">

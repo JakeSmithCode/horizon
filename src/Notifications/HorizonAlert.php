@@ -48,6 +48,20 @@ abstract class HorizonAlert extends Notification
     }
 
     /**
+     * Determine whether this alert is enabled.
+     *
+     * Subclasses tied to automatically-dispatched events override this to gate
+     * delivery behind an opt-in config flag, so the package stays a drop-in
+     * replacement that does not start paging existing installs on upgrade.
+     *
+     * @return bool
+     */
+    public function enabled()
+    {
+        return true;
+    }
+
+    /**
      * Get the notification's delivery channels.
      *
      * @param  mixed  $notifiable
@@ -55,6 +69,10 @@ abstract class HorizonAlert extends Notification
      */
     public function via($notifiable)
     {
+        if (! $this->enabled()) {
+            return [];
+        }
+
         return array_filter([
             Horizon::$slackWebhookUrl ? 'slack' : null,
             Horizon::$smsNumber ? 'nexmo' : null,

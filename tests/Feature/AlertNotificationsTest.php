@@ -22,6 +22,7 @@ class AlertNotificationsTest extends IntegrationTest
     {
         Notification::fake();
         Horizon::routeMailNotificationsTo('ops@example.com');
+        config(['horizon.alerts.supervisor_out_of_memory' => true]);
 
         $supervisor = new Supervisor(new SupervisorOptions('alpha', 'redis', 'default'));
 
@@ -36,6 +37,7 @@ class AlertNotificationsTest extends IntegrationTest
     {
         Notification::fake();
         Horizon::routeMailNotificationsTo('ops@example.com');
+        config(['horizon.alerts.master_supervisor_out_of_memory' => true]);
 
         $master = new MasterSupervisor;
         $master->name = 'master-1';
@@ -51,6 +53,7 @@ class AlertNotificationsTest extends IntegrationTest
     {
         Notification::fake();
         Horizon::routeMailNotificationsTo('ops@example.com');
+        config(['horizon.alerts.failed_to_launch_process' => true]);
 
         $process = new WorkerProcess(new Process(['echo', 'worker']));
 
@@ -76,5 +79,20 @@ class AlertNotificationsTest extends IntegrationTest
         Horizon::$smsNumber = null;
 
         $this->assertSame([], (new Notifications\HorizonStopped)->via(null));
+    }
+
+    public function test_out_of_memory_alerts_are_disabled_by_default()
+    {
+        // Routing is configured, but the opt-in flags are off (the default), so
+        // upgrading must not start delivering these alerts.
+        Horizon::routeMailNotificationsTo('ops@example.com');
+
+        $this->assertSame([], (new Notifications\SupervisorOutOfMemory('alpha', 128))->via(null));
+        $this->assertSame([], (new Notifications\MasterSupervisorOutOfMemory('master-1'))->via(null));
+        $this->assertSame([], (new Notifications\UnableToLaunchProcess('cmd'))->via(null));
+
+        config(['horizon.alerts.supervisor_out_of_memory' => true]);
+
+        $this->assertContains('mail', (new Notifications\SupervisorOutOfMemory('alpha', 128))->via(null));
     }
 }

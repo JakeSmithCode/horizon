@@ -37,8 +37,9 @@ class MonitorFailureRate
 
         // Monitoring is opt-in. When no threshold is configured the feature is
         // disabled entirely, preserving the default behavior of Horizon and
-        // keeping the package a drop-in replacement for existing installs.
-        if (! $threshold) {
+        // keeping the package a drop-in replacement for existing installs. A
+        // threshold of 0 is honored (alert on any recent failure).
+        if ($threshold === null) {
             return;
         }
 

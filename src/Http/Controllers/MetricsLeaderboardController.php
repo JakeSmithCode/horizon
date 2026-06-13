@@ -43,10 +43,10 @@ class MetricsLeaderboardController extends Controller
 
                 return [
                     'job' => $job,
-                    'runtime' => round($snapshot->runtime ?? $this->metrics->runtimeForJob($job), 2),
+                    'runtime' => round($snapshot?->runtime ?? $this->metrics->runtimeForJob($job), 2),
                     'p95' => isset($snapshot->p95) ? round($snapshot->p95, 2) : null,
                     'p99' => isset($snapshot->p99) ? round($snapshot->p99, 2) : null,
-                    'throughput' => (int) ($snapshot->throughput ?? $this->metrics->throughputForJob($job)),
+                    'throughput' => (int) ($snapshot?->throughput ?? $this->metrics->throughputForJob($job)),
                 ];
             })
             ->filter(fn ($entry) => ($entry['p95'] ?? $entry['runtime']) > 0)

@@ -131,17 +131,15 @@ class HealthCheck
      */
     protected function checkRedis()
     {
-        $connection = config('horizon.use', 'default');
-
         try {
-            Redis::connection($connection)->ping();
+            Redis::connection('horizon')->ping();
         } catch (Throwable $e) {
             return $this->result('Redis Connection', self::CRITICAL,
-                "Unable to reach Redis connection [{$connection}]: ".$e->getMessage());
+                'Unable to reach the Horizon Redis connection: '.$e->getMessage());
         }
 
         return $this->result('Redis Connection', self::OK,
-            "Redis connection [{$connection}] is reachable.");
+            'The Horizon Redis connection is reachable.');
     }
 
     /**
@@ -228,7 +226,7 @@ class HealthCheck
         $failed = $this->jobs->countRecentlyFailed();
         $threshold = config('horizon.failure_threshold');
 
-        if ($threshold && $failed > $threshold) {
+        if ($threshold !== null && $failed > $threshold) {
             return $this->result('Recent Failures', self::CRITICAL,
                 $failed.' recent failures exceed the configured threshold of '.$threshold.'.');
         }

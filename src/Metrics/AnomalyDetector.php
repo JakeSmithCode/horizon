@@ -2,7 +2,6 @@
 
 namespace Laravel\Horizon\Metrics;
 
-use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\MetricsRepository;
 use Laravel\Horizon\Contracts\WorkloadRepository;
 
@@ -34,28 +33,11 @@ class AnomalyDetector
     const MIN_BASELINE_RUNTIME = 10;
 
     /**
-     * The recent failure ratio above which the failure rate is considered elevated.
-     */
-    const FAILURE_RATE_THRESHOLD = 0.2;
-
-    /**
-     * The minimum number of recent jobs required to evaluate the failure rate.
-     */
-    const MIN_RECENT_FOR_FAILURE = 20;
-
-    /**
      * The metrics repository implementation.
      *
      * @var \Laravel\Horizon\Contracts\MetricsRepository
      */
     protected $metrics;
-
-    /**
-     * The job repository implementation.
-     *
-     * @var \Laravel\Horizon\Contracts\JobRepository
-     */
-    protected $jobs;
 
     /**
      * The workload repository implementation.
@@ -68,14 +50,12 @@ class AnomalyDetector
      * Create a new anomaly detector instance.
      *
      * @param  \Laravel\Horizon\Contracts\MetricsRepository  $metrics
-     * @param  \Laravel\Horizon\Contracts\JobRepository  $jobs
      * @param  \Laravel\Horizon\Contracts\WorkloadRepository  $workload
      * @return void
      */
-    public function __construct(MetricsRepository $metrics, JobRepository $jobs, WorkloadRepository $workload)
+    public function __construct(MetricsRepository $metrics, WorkloadRepository $workload)
     {
         $this->metrics = $metrics;
-        $this->jobs = $jobs;
         $this->workload = $workload;
     }
 
@@ -90,7 +70,6 @@ class AnomalyDetector
 
         $this->detectQueueTrends($anomalies);
         $this->detectStalledQueues($anomalies);
-        $this->detectFailureRate($anomalies);
 
         return $anomalies;
     }
@@ -161,35 +140,6 @@ class AnomalyDetector
                     'queue' => $queue['name'],
                 ];
             }
-        }
-    }
-
-    /**
-     * Detect an elevated recent failure rate.
-     *
-     * @param  array  $anomalies
-     * @return void
-     */
-    protected function detectFailureRate(array &$anomalies)
-    {
-        $recent = $this->jobs->countRecent();
-        $failed = $this->jobs->countRecentlyFailed();
-        $total = $recent + $failed;
-
-        if ($total < self::MIN_RECENT_FOR_FAILURE) {
-            return;
-        }
-
-        $ratio = $failed / $total;
-
-        if ($ratio >= self::FAILURE_RATE_THRESHOLD) {
-            $anomalies[] = [
-                'type' => 'elevated_failure_rate',
-                'severity' => $ratio >= 0.5 ? 'critical' : 'warning',
-                'title' => 'Elevated failure rate',
-                'detail' => round($ratio * 100).'% of recent jobs ('.$failed.' of '.$total.') have failed.',
-                'queue' => null,
-            ];
         }
     }
 
