@@ -21,6 +21,22 @@ All of your worker configuration is stored in a single, simple configuration fil
 
 Documentation for Horizon can be found on the [Laravel website](https://laravel.com/docs/horizon).
 
+## Fork Enhancements
+
+This fork is a **drop-in superset** of `laravel/horizon`. It changes no
+configuration defaults, routes, Redis data structures, or public API
+signatures, so it can be installed in any repository already running Horizon
+without modification. It adds three read-only observability commands:
+
+| Command | Description |
+| --- | --- |
+| `php artisan horizon:stats` | Print the current dashboard statistics (status, processes, throughput, recent/failed jobs, wait times) to the terminal. Add `--json` for machine-readable output. |
+| `php artisan horizon:diagnose` | Run health checks (Redis reachability, required extensions, master/worker status, long waits, recent failures) and exit `0` healthy, `1` warnings, `2` critical — ideal for container probes and CI smoke checks. Add `--json` for structured output. |
+| `php artisan horizon:prometheus` | Export Horizon metrics in Prometheus / OpenMetrics text format for scraping. Use `--file=` to write to a node_exporter textfile collector, or `--namespace=` to change the metric prefix. |
+
+All three only read from Horizon's existing repositories, so they are safe to
+run against a live production installation.
+
 ## Contributing
 
 Thank you for considering contributing to Horizon! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
